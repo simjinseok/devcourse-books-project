@@ -1,14 +1,17 @@
+const jwt = require('jsonwebtoken');
+const crypto = require('node:crypto');
 const conn = require("../db");
 const { StatusCodes } = require('http-status-codes');
-const jwt = require('jsonwebtoken');
-
 
 function join (req, res) {
     const {email, password} = req.body;
 
-    const sql = "INSERT INTO users (email, password) VALUES ($1, $2)";
+    const salt = crypto.randomBytes(10).toString('base64');
+    const hashPassword = getHashedPassword(password, salt);
+
+    const sql = "INSERT INTO users (email, password, salt) VALUES ($1, $2, $3)";
     conn.connect(() => {
-        conn.query(sql, [email, password], (err, result) => {
+        conn.query(sql, [email, hashPassword, salt], (err, result) => {
             console.log("ddd", err, result);
             if (err) {
                 console.log(err);
@@ -32,19 +35,22 @@ function login(req, res) {
             }
 
             const user = result.rows[0];
-            if (user && user.password === password) {
-                const token = jwt.sign({
-                    email: user.email,
-                }, process.env.SECRET_KEY_BASE, {
-                    expiresIn: '5m',
-                    issuer: 'js',
-                });
+            if (user) {
+                const hashPassword = getHashedPassword(password, user.salt);
+                if (user.password === hashPassword) {
+                    const token = jwt.sign({
+                        email: user.email,
+                    }, process.env.SECRET_KEY_BASE, {
+                        expiresIn: '5m',
+                        issuer: 'js',
+                    });
 
-                res.cookie('token', token, { httpOnly: true });
-                res.status(StatusCodes.CREATED).json(result);
-            } else {
-                res.status(StatusCodes.UNAUTHORIZED).end();
+                    res.cookie('token', token, { httpOnly: true });
+                    return res.status(StatusCodes.CREATED).json(result);
+                }
             }
+
+            res.status(StatusCodes.UNAUTHORIZED).end();
         });
     });
 
@@ -69,9 +75,11 @@ function requestPasswordReset(req, res) {
 function passwordReset(req, res) {
     const { email, password } = req.body;
 
-    const sql = 'UPDATE users SET password=$1 WHERE email=$2';
+    const salt = crypto.randomBytes(10).toString("base64");
+    const hashPassword = getHashedPassword(password, salt);
+    const sql = 'UPDATE users SET password=$1, salt=$2 WHERE email=$3';
     conn.connect(() => {
-        conn.query(sql, [password, email], (err, result) => {
+        conn.query(sql, [hashPassword, salt, email], (err, result) => {
             if (result.rowCount > 0) {
                 res.status(StatusCodes.OK).end();
             } else {
@@ -79,6 +87,10 @@ function passwordReset(req, res) {
             }
         });
     });
+}
+
+function getHashedPassword(password, salt) {
+    return crypto.pbkdf2Sync(password, salt, 10000, 10, 'sha512').toString('base64');
 }
 
 module.exports = {
