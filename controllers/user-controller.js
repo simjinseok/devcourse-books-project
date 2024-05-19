@@ -21,6 +21,32 @@ function join (req, res) {
 }
 
 function login(req, res) {
+    const { email, password } = req.body;
+    const sql = 'SELECT * FROM users WHERE email = $1';
+    conn.connect(() => {
+        conn.query(sql, [email], (err, result) => {
+            console.log("ddd", err, result);
+            if (err) {
+                console.log(err);
+                return res.status(StatusCodes.BAD_REQUEST).end();
+            }
+
+            const user = result.rows[0];
+            if (user && user.password === password) {
+                const token = jwt.sign({
+                    email: user.email,
+                }, process.env.SECRET_KEY_BASE, {
+                    expiresIn: '5m',
+                    issuer: 'js',
+                });
+
+                res.cookie('token', token, { httpOnly: true });
+                res.status(StatusCodes.CREATED).json(result);
+            } else {
+                res.status(StatusCodes.UNAUTHORIZED).end();
+            }
+        });
+    });
 
 }
 
