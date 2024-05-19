@@ -51,7 +51,19 @@ function login(req, res) {
 }
 
 function requestPasswordReset(req, res) {
+    const { email } = req.body;
 
+    const sql = 'SELECT * FROM users WHERE email = $1';
+    conn.connect(() => {
+       conn.query(sql, [email], (err, result) => {
+          const user = result.rows[0];
+          if (user) {
+              res.status(StatusCodes.CREATED).end();
+          } else {
+              res.status(StatusCodes.NOT_FOUND).end();
+          }
+       });
+    });
 }
 
 function passwordReset(req, res) {
