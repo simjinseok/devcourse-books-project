@@ -67,7 +67,18 @@ function requestPasswordReset(req, res) {
 }
 
 function passwordReset(req, res) {
+    const { email, password } = req.body;
 
+    const sql = 'UPDATE users SET password=$1 WHERE email=$2';
+    conn.connect(() => {
+        conn.query(sql, [password, email], (err, result) => {
+            if (result.rowCount > 0) {
+                res.status(StatusCodes.OK).end();
+            } else {
+                res.status(StatusCodes.BAD_REQUEST).end();
+            }
+        });
+    });
 }
 
 module.exports = {
