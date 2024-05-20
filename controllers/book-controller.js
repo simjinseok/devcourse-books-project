@@ -3,10 +3,21 @@ const {StatusCodes} = require("http-status-codes");
 
 function getBooks(req, res) {
     const categoryId = Number.parseInt(req.query.category_id);
+    const isNew = req.query.is_new === 'true';
 
-    const sql = 'SELECT * FROM books WHERE category_id=$1';
+    let sql = 'SELECT * FROM books WHERE 1=1';
+    const values = [];
+    if (categoryId) {
+        sql += ' AND books.category_id=$1';
+        values.push(categoryId);
+    }
+
+    if (isNew) {
+        sql += " AND books.pub_date >= CURRENT_DATE - INTERVAL '1 month'"
+    }
+
     conn.connect(() => {
-        conn.query(sql, [categoryId], (err, result) => {
+        conn.query(sql, values, (err, result) => {
             if (err) {
                 console.log(err);
                 return res.status(StatusCodes.BAD_REQUEST).end();
