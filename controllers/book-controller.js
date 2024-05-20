@@ -4,11 +4,13 @@ const {StatusCodes} = require("http-status-codes");
 function getBooks(req, res) {
     const categoryId = Number.parseInt(req.query.category_id);
     const isNew = req.query.is_new === 'true';
+    const currentPage = req.query.page || 1;
+    const perPage = req.query.pageSize || 10;
 
     let sql = 'SELECT * FROM books WHERE 1=1';
     const values = [];
     if (categoryId) {
-        sql += ' AND books.category_id=$1';
+        sql += ` AND books.category_id=$${values.length + 1}`;
         values.push(categoryId);
     }
 
@@ -16,6 +18,12 @@ function getBooks(req, res) {
         sql += " AND books.pub_date >= CURRENT_DATE - INTERVAL '1 month'"
     }
 
+    sql += ` LIMIT $${values.length + 1}`;
+    values.push(perPage);
+    sql += ` OFFSET $${values.length + 1}`;
+    values.push(perPage * currentPage);
+
+    console.log(sql);
     conn.connect(() => {
         conn.query(sql, values, (err, result) => {
             if (err) {
