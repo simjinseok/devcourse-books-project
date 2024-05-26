@@ -23,7 +23,6 @@ function getBooks(req, res) {
     sql += ` OFFSET $${values.length + 1}`;
     values.push(perPage * currentPage);
 
-    console.log(sql);
     conn.connect(() => {
         conn.query(sql, values, (err, result) => {
             if (err) {
@@ -41,11 +40,17 @@ function getBooks(req, res) {
 }
 
 function getBook(req, res) {
+    const userId = Number.parseInt(req.query.user_id);
     const id = Number.parseInt(req.params.id);
 
-    const sql = 'SELECT * FROM books WHERE id = $1';
+    const sql = 'SELECT ' +
+        'books.id AS id, title, img, form, isbn, summary, detail, author, pages, contents, price, pub_date, categories.name as category_name, ' +
+        '(SELECT count(*) FROM likes WHERE book_id=books.id) AS likes, ' +
+        '(SELECT EXISTS (SELECT * FROM likes WHERE user_id = $1 AND book_id = $2)) AS liked ' +
+        'FROM books LEFT JOIN categories ON books.category_id = categories.id WHERE books.id = $2';
+    const values = [userId, id];
     conn.connect(() => {
-        conn.query(sql, [id], (err, result) => {
+        conn.query(sql, values, (err, result) => {
             console.log(result);
             if (err) {
                 console.log(err);
