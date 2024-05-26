@@ -8,5 +8,6 @@ app.use('/', require('./routes/users'));
 app.use('/books', require('./routes/books'));
 app.use('/likes', require('./routes/likes'));
 app.use('/categories', require('./routes/categories'));
+app.use('/cart', require('./routes/cart'));
 
 app.listen(process.env.PORT);
