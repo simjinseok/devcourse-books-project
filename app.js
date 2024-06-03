@@ -10,5 +10,6 @@ app.use('/likes', require('./routes/likes'));
 app.use('/categories', require('./routes/categories'));
 app.use('/cart', require('./routes/cart'));
 app.use('/checkout', require('./routes/checkout'));
+app.use('/orders', require('./routes/orders'));
 
 app.listen(process.env.PORT);
