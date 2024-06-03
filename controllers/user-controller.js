@@ -39,6 +39,7 @@ function login(req, res) {
                 const hashPassword = getHashedPassword(password, user.salt);
                 if (user.password === hashPassword) {
                     const token = jwt.sign({
+                        id: user.id,
                         email: user.email,
                     }, process.env.SECRET_KEY_BASE, {
                         expiresIn: '5m',
